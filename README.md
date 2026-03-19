@@ -13,6 +13,17 @@ A self-hosted, real-time collaborative travel planner for organizing trips with 
 
 ![NOMAD Screenshot](docs/screenshot.png)
 
+<details>
+<summary>More Screenshots</summary>
+
+| | |
+|---|---|
+| ![Plan Detail](docs/screenshot-plan-detail.png) | ![Bookings](docs/screenshot-bookings.png) |
+| ![Packing List](docs/screenshot-packing.png) | ![Budget](docs/screenshot-budget.png) |
+| ![Files](docs/screenshot-files.png) | |
+
+</details>
+
 ## Features
 
 - **Real-Time Collaboration** — Plan together via WebSocket live sync — changes appear instantly across all connected users
