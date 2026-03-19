@@ -87,7 +87,6 @@ export default function App() {
   return (
     <TranslationProvider>
       <ToastContainer />
-      {demoMode && isAuthenticated && <DemoBanner />}
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginPage />} />

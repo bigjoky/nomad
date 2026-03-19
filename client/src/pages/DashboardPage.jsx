@@ -4,6 +4,7 @@ import { tripsApi } from '../api/client'
 import { useAuthStore } from '../store/authStore'
 import { useTranslation } from '../i18n'
 import Navbar from '../components/Layout/Navbar'
+import DemoBanner from '../components/Layout/DemoBanner'
 import TravelStats from '../components/Dashboard/TravelStats'
 import TripFormModal from '../components/Trips/TripFormModal'
 import { useToast } from '../components/shared/Toast'
@@ -348,6 +349,7 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const { t, locale } = useTranslation()
+  const { demoMode } = useAuthStore()
 
   useEffect(() => { loadTrips() }, [])
 
@@ -437,6 +439,7 @@ export default function DashboardPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', ...font }}>
       <Navbar />
+      {demoMode && <DemoBanner />}
       <div style={{ paddingTop: 56 }}>
         <div style={{ maxWidth: 1300, margin: '0 auto', padding: '32px 20px 60px' }}>
 

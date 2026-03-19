@@ -1,17 +1,18 @@
 import React, { useState } from 'react'
-import { Info, Github, Shield, Key, Users, Database, X } from 'lucide-react'
+import { Info, Github, Shield, Key, Users, Database, Upload } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 
 const texts = {
   de: {
     title: 'Willkommen zur NOMAD Demo',
     description: 'Du kannst Reisen ansehen, bearbeiten und eigene erstellen. Alle Aenderungen werden jede Stunde automatisch zurueckgesetzt.',
+    uploadNote: 'Datei-Uploads (Fotos, Dokumente, Cover) sind in der Demo deaktiviert.',
     fullVersionTitle: 'In der Vollversion zusaetzlich verfuegbar:',
     features: [
+      'Datei-Uploads (Fotos, Dokumente, Reise-Cover)',
       'API-Schluessel verwalten (Google Maps, Wetter)',
       'Benutzer & Rechte verwalten',
       'Automatische Backups & Wiederherstellung',
-      'Registrierung & Sicherheitseinstellungen',
     ],
     selfHost: 'NOMAD ist Open Source — ',
     selfHostLink: 'selbst hosten',
@@ -20,12 +21,13 @@ const texts = {
   en: {
     title: 'Welcome to the NOMAD Demo',
     description: 'You can view, edit and create trips. All changes are automatically reset every hour.',
+    uploadNote: 'File uploads (photos, documents, covers) are disabled in demo mode.',
     fullVersionTitle: 'Additionally available in the full version:',
     features: [
+      'File uploads (photos, documents, trip covers)',
       'API key management (Google Maps, Weather)',
       'User & permission management',
       'Automatic backups & restore',
-      'Registration & security settings',
     ],
     selfHost: 'NOMAD is open source — ',
     selfHostLink: 'self-host it',
@@ -33,19 +35,14 @@ const texts = {
   },
 }
 
-const featureIcons = [Key, Users, Database, Shield]
+const featureIcons = [Upload, Key, Users, Database]
 
 export default function DemoBanner() {
-  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem('demo_dismissed') === 'true')
+  const [dismissed, setDismissed] = useState(false)
   const { language } = useTranslation()
   const t = texts[language] || texts.en
 
   if (dismissed) return null
-
-  const handleClose = () => {
-    sessionStorage.setItem('demo_dismissed', 'true')
-    setDismissed(true)
-  }
 
   return (
     <div style={{
@@ -54,7 +51,7 @@ export default function DemoBanner() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 24,
       fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
-    }} onClick={handleClose}>
+    }} onClick={() => setDismissed(true)}>
       <div style={{
         background: 'white', borderRadius: 20, padding: '32px 28px 24px',
         maxWidth: 440, width: '100%',
@@ -74,8 +71,17 @@ export default function DemoBanner() {
           </h2>
         </div>
 
-        <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6, margin: '0 0 20px' }}>
+        <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6, margin: '0 0 12px' }}>
           {t.description}
+        </p>
+
+        <p style={{
+          fontSize: 13, color: '#b45309', lineHeight: 1.5, margin: '0 0 20px',
+          background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '10px 12px',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <Upload size={15} style={{ flexShrink: 0 }} />
+          {t.uploadNote}
         </p>
 
         <p style={{ fontSize: 12, fontWeight: 700, color: '#374151', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -107,7 +113,7 @@ export default function DemoBanner() {
             </a>
           </div>
 
-          <button onClick={handleClose} style={{
+          <button onClick={() => setDismissed(true)} style={{
             background: '#111827', color: 'white', border: 'none',
             borderRadius: 10, padding: '8px 20px', fontSize: 13,
             fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
