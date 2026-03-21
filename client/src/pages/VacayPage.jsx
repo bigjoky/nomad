@@ -50,7 +50,7 @@ export default function VacayPage() {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
         <Navbar />
-        <div className="pt-14 flex items-center justify-center" style={{ minHeight: 'calc(100vh - 56px)' }}>
+        <div className="flex items-center justify-center" style={{ paddingTop: 'var(--nav-h)', minHeight: 'calc(100vh - var(--nav-h))' }}>
           <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border-primary)', borderTopColor: 'var(--text-primary)' }} />
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function VacayPage() {
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       <Navbar />
 
-      <div className="pt-14">
+      <div style={{ paddingTop: 'var(--nav-h)' }}>
         <div className="max-w-[1800px] mx-auto px-3 sm:px-4 py-4 sm:py-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-4 sm:mb-5">

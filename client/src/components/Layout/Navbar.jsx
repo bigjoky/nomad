@@ -56,7 +56,9 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare })
       borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
       boxShadow: dark ? '0 1px 12px rgba(0,0,0,0.2)' : '0 1px 12px rgba(0,0,0,0.05)',
       touchAction: 'manipulation',
-    }} className="h-14 flex items-center px-4 gap-4 fixed top-0 left-0 right-0 z-[200]">
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      height: 'var(--nav-h)',
+    }} className="flex items-center px-4 gap-4 fixed top-0 left-0 right-0 z-[200]">
       {/* Left side */}
       <div className="flex items-center gap-3 min-w-0">
         {showBack && (

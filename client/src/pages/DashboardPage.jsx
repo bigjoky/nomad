@@ -456,7 +456,7 @@ export default function DashboardPage() {
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', ...font }}>
       <Navbar />
       {demoMode && <DemoBanner />}
-      <div style={{ flex: 1, overflow: 'auto', overscrollBehavior: 'contain', marginTop: 56 }}>
+      <div style={{ flex: 1, overflow: 'auto', overscrollBehavior: 'contain', marginTop: 'var(--nav-h)' }}>
         <div style={{ maxWidth: 1300, margin: '0 auto', padding: '32px 20px 60px' }}>
 
           {/* Header */}

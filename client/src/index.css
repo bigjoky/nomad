@@ -3,17 +3,7 @@
 @tailwind utilities;
 
 html { height: 100%; overflow: hidden; }
-body {
-  height: 100%;
-  overflow: auto;
-  overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
-  /* PWA safe areas (notch, home indicator) */
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
+body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow-scrolling: touch; }
 
 .atlas-tooltip {
   background: rgba(10, 10, 20, 0.6) !important;
@@ -148,6 +138,8 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
 
 /* ── Design tokens ─────────────────────────────── */
 :root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --nav-h: calc(56px + var(--safe-top));
   --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
   --sp-1: 4px;
   --sp-2: 8px;

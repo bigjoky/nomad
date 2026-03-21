@@ -270,7 +270,7 @@ export default function AtlasPage() {
     return (
       <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
         <Navbar />
-        <div className="pt-14 flex items-center justify-center" style={{ minHeight: 'calc(100vh - 56px)' }}>
+        <div className="flex items-center justify-center" style={{ paddingTop: 'var(--nav-h)', minHeight: 'calc(100vh - var(--nav-h))' }}>
           <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border-primary)', borderTopColor: 'var(--text-primary)' }} />
         </div>
       </div>
@@ -280,7 +280,7 @@ export default function AtlasPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       <Navbar />
-      <div style={{ position: 'fixed', top: 56, left: 0, right: 0, bottom: 0 }}>
+      <div style={{ position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0 }}>
         {/* Map */}
         <div ref={mapRef} style={{ position: 'absolute', inset: 0, zIndex: 1, background: dark ? '#1a1a2e' : '#f0f0f0' }} />
 

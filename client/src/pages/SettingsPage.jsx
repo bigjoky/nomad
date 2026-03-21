@@ -136,7 +136,7 @@ export default function SettingsPage() {
     <div className="min-h-screen" style={{ background: 'var(--bg-secondary)' }}>
       <Navbar />
 
-      <div className="pt-14">
+      <div style={{ paddingTop: 'var(--nav-h)' }}>
         <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
           <div>
             <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('settings.title')}</h1>

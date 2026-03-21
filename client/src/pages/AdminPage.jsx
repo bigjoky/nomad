@@ -209,7 +209,7 @@ export default function AdminPage() {
     <div className="min-h-screen" style={{ background: 'var(--bg-secondary)' }}>
       <Navbar />
 
-      <div className="pt-14">
+      <div style={{ paddingTop: 'var(--nav-h)' }}>
         <div className="max-w-6xl mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
