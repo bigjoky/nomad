@@ -665,8 +665,8 @@ const es = {
   'files.filterPdf': 'PDF',
   'files.filterImages': 'Imágenes',
   'files.filterDocs': 'Documentos',
-  'files.filterCollab': 'Notas de Collab',
-  'files.sourceCollab': 'De las notas de Collab',
+  'files.filterCollab': 'Notas de colaboración',
+  'files.sourceCollab': 'Desde notas de colaboración',
   'files.empty': 'Aún no hay archivos',
   'files.emptyHint': 'Sube archivos para adjuntarlos a tu viaje',
   'files.openTab': 'Abrir en una pestaña nueva',
@@ -867,6 +867,18 @@ const es = {
   'photos.uploadN': 'Subida de {n} foto(s)',
   'admin.addons.catalog.memories.name': 'Recuerdos',
   'admin.addons.catalog.memories.description': 'Álbumes de fotos compartidos para cada viaje',
+  'admin.addons.catalog.packing.name': 'Equipaje',
+  'admin.addons.catalog.packing.description': 'Prepara tu equipaje con listas de comprobación para cada viaje',
+  'admin.addons.catalog.budget.name': 'Presupuesto',
+  'admin.addons.catalog.budget.description': 'Controla los gastos y planifica el presupuesto del viaje',
+  'admin.addons.catalog.documents.name': 'Documentos',
+  'admin.addons.catalog.documents.description': 'Guarda y gestiona la documentación del viaje',
+  'admin.addons.catalog.vacay.name': 'Vacaciones',
+  'admin.addons.catalog.vacay.description': 'Planificador personal de vacaciones con vista de calendario',
+  'admin.addons.catalog.atlas.name': 'Atlas',
+  'admin.addons.catalog.atlas.description': 'Mapa del mundo con los países visitados y estadísticas de viaje',
+  'admin.addons.catalog.collab.name': 'Colaboración',
+  'admin.addons.catalog.collab.description': 'Notas, encuestas y chat en tiempo real para organizar el viaje',
 
   // Backup restore modal
   'backup.restoreConfirmTitle': '¿Restaurar copia?',
@@ -977,7 +989,7 @@ const es = {
   'day.reservations': 'Reservas',
 
   // Collab Addon
-  'collab.tabs.chat': 'Chat',
+  'collab.tabs.chat': 'Mensajes',
   'collab.tabs.notes': 'Notas',
   'collab.tabs.polls': 'Encuestas',
   'collab.whatsNext.title': 'Qué viene ahora',
