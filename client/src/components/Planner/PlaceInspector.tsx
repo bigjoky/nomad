@@ -377,7 +377,9 @@ export default function PlaceInspector({
                             <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.time')}</div>
                             <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>
                               {new Date(res.reservation_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}
-                              {res.reservation_end_time && ` – ${res.reservation_end_time}`}
+                              {res.reservation_end_time && ` – ${res.reservation_end_time.includes('T')
+                                ? new Date(res.reservation_end_time).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })
+                                : res.reservation_end_time}`}
                             </div>
                           </div>
                         )}
@@ -398,6 +400,8 @@ export default function PlaceInspector({
                         if (meta.departure_airport && meta.arrival_airport) parts.push(`${meta.departure_airport} → ${meta.arrival_airport}`)
                         if (meta.train_number) parts.push(meta.train_number)
                         if (meta.platform) parts.push(`Gl. ${meta.platform}`)
+                        if (res.type === 'car' && res.reservation_time) parts.push(`Pick-up ${new Date(res.reservation_time).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}`)
+                        if (res.type === 'car' && res.reservation_end_time) parts.push(`Drop-off ${res.reservation_end_time.includes('T') ? new Date(res.reservation_end_time).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' }) : res.reservation_end_time}`)
                         if (meta.check_in_time) parts.push(`Check-in ${meta.check_in_time}`)
                         if (meta.check_out_time) parts.push(`Check-out ${meta.check_out_time}`)
                         if (parts.length === 0) return null

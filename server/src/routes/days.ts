@@ -5,8 +5,18 @@ import { requireTripAccess } from '../middleware/tripAccess';
 import { broadcast } from '../websocket';
 import { loadTagsByPlaceIds, loadParticipantsByAssignmentIds, formatAssignmentWithPlace } from '../services/queryHelpers';
 import { AuthRequest, AssignmentRow, Day, DayNote } from '../types';
+import { ensurePlanAssignment } from '../services/planAssignments';
 
 const router = express.Router({ mergeParams: true });
+
+function parseJsonSafely<T>(value: string | null | undefined, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 function getAssignmentsForDay(dayId: number | string) {
   const assignments = db.prepare(`
@@ -220,6 +230,11 @@ accommodationsRouter.post('/', authenticate, requireTripAccess, (req: Request, r
   ).run(tripId, place_id, start_day_id, end_day_id, check_in || null, check_out || null, confirmation || null, notes || null);
 
   const accommodationId = result.lastInsertRowid;
+  const ensuredAssignment = ensurePlanAssignment({
+    tripId: Number(tripId),
+    dayId: Number(start_day_id),
+    placeId: Number(place_id),
+  });
 
   // Auto-create linked reservation for this accommodation
   const placeName = (db.prepare('SELECT name FROM places WHERE id = ?').get(place_id) as { name: string } | undefined)?.name || 'Hotel';
@@ -227,19 +242,32 @@ accommodationsRouter.post('/', authenticate, requireTripAccess, (req: Request, r
   const meta: Record<string, string> = {};
   if (check_in) meta.check_in_time = check_in;
   if (check_out) meta.check_out_time = check_out;
-  db.prepare(`
-    INSERT INTO reservations (trip_id, day_id, title, reservation_time, location, confirmation_number, notes, status, type, accommodation_id, metadata)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', 'hotel', ?, ?)
+  const reservationResult = db.prepare(`
+    INSERT INTO reservations (trip_id, day_id, place_id, assignment_id, title, reservation_time, location, confirmation_number, notes, status, type, accommodation_id, metadata)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'hotel', ?, ?)
   `).run(
-    tripId, start_day_id, placeName, startDayDate || null, null,
+    tripId, start_day_id, place_id, ensuredAssignment?.assignment.id || null, placeName, startDayDate || null, null,
     confirmation || null, notes || null, accommodationId,
     Object.keys(meta).length > 0 ? JSON.stringify(meta) : null
   );
+  const reservation = db.prepare(`
+    SELECT r.*, d.day_number, p.name as place_name, r.assignment_id,
+      ap.place_id as accommodation_place_id, acc_p.name as accommodation_name
+    FROM reservations r
+    LEFT JOIN days d ON r.day_id = d.id
+    LEFT JOIN places p ON r.place_id = p.id
+    LEFT JOIN day_accommodations ap ON r.accommodation_id = ap.id
+    LEFT JOIN places acc_p ON ap.place_id = acc_p.id
+    WHERE r.id = ?
+  `).get(reservationResult.lastInsertRowid);
 
   const accommodation = getAccommodationWithPlace(accommodationId);
   res.status(201).json({ accommodation });
+  if (ensuredAssignment?.created) {
+    broadcast(tripId, 'assignment:created', { assignment: ensuredAssignment.assignment }, req.headers['x-socket-id'] as string);
+  }
   broadcast(tripId, 'accommodation:created', { accommodation }, req.headers['x-socket-id'] as string);
-  broadcast(tripId, 'reservation:created', {}, req.headers['x-socket-id'] as string);
+  broadcast(tripId, 'reservation:created', { reservation }, req.headers['x-socket-id'] as string);
 });
 
 accommodationsRouter.put('/:id', authenticate, requireTripAccess, (req: Request, res: Response) => {
@@ -281,11 +309,30 @@ accommodationsRouter.put('/:id', authenticate, requireTripAccess, (req: Request,
   // Sync check-in/out/confirmation to linked reservation
   const linkedRes = db.prepare('SELECT id, metadata FROM reservations WHERE accommodation_id = ?').get(Number(id)) as { id: number; metadata: string | null } | undefined;
   if (linkedRes) {
-    const meta = linkedRes.metadata ? JSON.parse(linkedRes.metadata) : {};
+    const ensuredAssignment = ensurePlanAssignment({
+      tripId: Number(tripId),
+      dayId: Number(newStartDayId),
+      placeId: Number(newPlaceId),
+    });
+    const meta = parseJsonSafely<Record<string, string>>(linkedRes.metadata, {});
     if (newCheckIn) meta.check_in_time = newCheckIn;
     if (newCheckOut) meta.check_out_time = newCheckOut;
-    db.prepare('UPDATE reservations SET metadata = ?, confirmation_number = COALESCE(?, confirmation_number) WHERE id = ?')
-      .run(JSON.stringify(meta), newConfirmation || null, linkedRes.id);
+    db.prepare('UPDATE reservations SET day_id = ?, place_id = ?, assignment_id = ?, metadata = ?, confirmation_number = COALESCE(?, confirmation_number) WHERE id = ?')
+      .run(newStartDayId, newPlaceId, ensuredAssignment?.assignment.id || null, JSON.stringify(meta), newConfirmation || null, linkedRes.id);
+    const updatedReservation = db.prepare(`
+      SELECT r.*, d.day_number, p.name as place_name, r.assignment_id,
+        ap.place_id as accommodation_place_id, acc_p.name as accommodation_name
+      FROM reservations r
+      LEFT JOIN days d ON r.day_id = d.id
+      LEFT JOIN places p ON r.place_id = p.id
+      LEFT JOIN day_accommodations ap ON r.accommodation_id = ap.id
+      LEFT JOIN places acc_p ON ap.place_id = acc_p.id
+      WHERE r.id = ?
+    `).get(linkedRes.id);
+    if (ensuredAssignment?.created) {
+      broadcast(tripId, 'assignment:created', { assignment: ensuredAssignment.assignment }, req.headers['x-socket-id'] as string);
+    }
+    broadcast(tripId, 'reservation:updated', { reservation: updatedReservation }, req.headers['x-socket-id'] as string);
   }
 
   const accommodation = getAccommodationWithPlace(Number(id));

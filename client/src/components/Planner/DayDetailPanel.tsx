@@ -38,6 +38,20 @@ function formatTime12(val, is12h) {
   return `${h12}:${String(m).padStart(2, '0')} ${period}`
 }
 
+function formatReservationEnd(value, locale, is12h) {
+  if (!value) return ''
+  if (String(value).includes('T')) {
+    return new Date(value).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: is12h })
+  }
+  return formatTime12(value, is12h)
+}
+
+function extractReservationDate(value) {
+  if (!value) return null
+  const [datePart] = String(value).split('T')
+  return datePart || null
+}
+
 interface DayDetailPanelProps {
   day: Day
   days: Day[]
@@ -251,7 +265,15 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
           {/* ── Reservations for this day's assignments ── */}
           {(() => {
             const dayAssignments = assignments[String(day.id)] || []
-            const dayReservations = reservations.filter(r => dayAssignments.some(a => a.id === r.assignment_id))
+            const reservationDateMatchesDay = (reservation) => {
+              if (!day.date) return false
+              const reservationDate = extractReservationDate(reservation?.reservation_time)
+              const reservationEndDate = extractReservationDate(reservation?.reservation_end_time)
+              return reservationDate === day.date || (reservation?.type === 'car' && reservationEndDate === day.date)
+            }
+            const dayReservations = reservations.filter(r =>
+              dayAssignments.some(a => a.id === r.assignment_id) || (!r.assignment_id && (r.day_id === day.id || reservationDateMatchesDay(r)))
+            )
             if (dayReservations.length === 0) return null
             return (
               <div style={{ marginBottom: 0 }}>
@@ -261,17 +283,24 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                   {dayReservations.map(r => {
                     const linkedAssignment = dayAssignments.find(a => a.id === r.assignment_id)
                     const confirmed = r.status === 'confirmed'
+                    const reservationDate = extractReservationDate(r.reservation_time)
+                    const reservationEndDate = extractReservationDate(r.reservation_end_time)
+                    const isCarPickup = r.type === 'car' && reservationDate === day.date
+                    const isCarDropoff = r.type === 'car' && reservationEndDate === day.date && reservationEndDate !== reservationDate
                     return (
                       <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8, background: confirmed ? 'rgba(22,163,74,0.06)' : 'rgba(217,119,6,0.06)', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.15)' : 'rgba(217,119,6,0.15)'}` }}>
                         {(() => { const TIcon = RES_TYPE_ICONS[r.type] || FileText; return <TIcon size={12} style={{ color: RES_TYPE_COLORS[r.type] || 'var(--text-faint)', flexShrink: 0 }} /> })()}
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
                           <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
+                          {(isCarPickup || isCarDropoff) && <span style={{ fontSize: 9, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>· {isCarPickup ? t('reservations.pickup') : t('reservations.dropoff')}</span>}
                           {linkedAssignment?.place && <span style={{ fontSize: 9, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>· {linkedAssignment.place.name}</span>}
                         </div>
-                        {r.reservation_time?.includes('T') && (
+                        {(r.reservation_time?.includes('T') || (isCarDropoff && r.reservation_end_time)) && (
                           <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            {new Date(r.reservation_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: is12h })}
-                            {r.reservation_end_time && ` – ${fmtTime(r.reservation_end_time)}`}
+                            {isCarDropoff
+                              ? formatReservationEnd(r.reservation_end_time, locale, is12h)
+                              : new Date(r.reservation_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: is12h })}
+                            {!isCarDropoff && r.reservation_end_time && ` – ${formatReservationEnd(r.reservation_end_time, locale, is12h)}`}
                           </span>
                         )}
                       </div>

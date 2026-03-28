@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
-import { Plane, Hotel, Utensils, Train, Car, Ship, Ticket, FileText, Users, Paperclip, X, ExternalLink, Link2 } from 'lucide-react'
+import { Plane, Hotel, Utensils, Train, Car, Ship, Ticket, FileText, Users, Paperclip, X, ExternalLink, Link2, Search } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import CustomTimePicker from '../shared/CustomTimePicker'
+import { mapsApi } from '../../api/client'
+import { useAuthStore } from '../../store/authStore'
 import type { Day, Place, Reservation, TripFile, AssignmentsMap, Accommodation } from '../../types'
 
 const TYPE_OPTIONS = [
@@ -40,6 +42,8 @@ function buildAssignmentOptions(days, assignments, t, locale) {
         searchLabel: place.name,
         groupLabel,
         dayDate: day.date || null,
+        dayId: day.id,
+        placeId: place.id,
       })
     }
   }
@@ -63,7 +67,8 @@ interface ReservationModalProps {
 
 export function ReservationModal({ isOpen, onClose, onSave, reservation, days, places, assignments, selectedDayId, files = [], onFileUpload, onFileDelete, accommodations = [] }: ReservationModalProps) {
   const toast = useToast()
-  const { t, locale } = useTranslation()
+  const { t, locale, language } = useTranslation()
+  const { hasMapsKey } = useAuthStore()
   const fileInputRef = useRef(null)
 
   const [form, setForm] = useState({
@@ -78,10 +83,17 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingFile, setUploadingFile] = useState(false)
   const [pendingFiles, setPendingFiles] = useState([])
+  const [mapsSearch, setMapsSearch] = useState('')
+  const [mapsResults, setMapsResults] = useState([])
+  const [isSearchingMaps, setIsSearchingMaps] = useState(false)
 
   const assignmentOptions = useMemo(
     () => buildAssignmentOptions(days, assignments, t, locale),
     [days, assignments, t, locale]
+  )
+  const selectedAssignmentOption = useMemo(
+    () => assignmentOptions.find(option => option.value === form.assignment_id),
+    [assignmentOptions, form.assignment_id]
   )
 
   useEffect(() => {
@@ -122,9 +134,33 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       })
       setPendingFiles([])
     }
+    setMapsSearch('')
+    setMapsResults([])
   }, [reservation, isOpen, selectedDayId])
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+
+  const handleMapsSearch = async () => {
+    if (!mapsSearch.trim()) return
+    setIsSearchingMaps(true)
+    try {
+      const result = await mapsApi.search(mapsSearch, language)
+      setMapsResults(result.places || [])
+    } catch {
+      toast.error(t('places.mapsSearchError'))
+    } finally {
+      setIsSearchingMaps(false)
+    }
+  }
+
+  const handleSelectMapsResult = (result) => {
+    setForm(prev => ({
+      ...prev,
+      location: result.address || result.name || prev.location,
+    }))
+    setMapsResults([])
+    setMapsSearch('')
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -151,11 +187,16 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         location: form.location, confirmation_number: form.confirmation_number,
         notes: form.notes,
         assignment_id: form.assignment_id || null,
+        day_id: selectedAssignmentOption?.dayId || null,
+        place_id: selectedAssignmentOption?.placeId || null,
         accommodation_id: form.type === 'hotel' ? (form.accommodation_id || null) : null,
         metadata: Object.keys(metadata).length > 0 ? metadata : null,
       }
       // If hotel with place + days, pass hotel data for auto-creation or update
       if (form.type === 'hotel' && form.hotel_place_id && form.hotel_start_day && form.hotel_end_day) {
+        saveData.day_id = form.hotel_start_day
+        saveData.place_id = form.hotel_place_id
+        saveData.assignment_id = null
         saveData.create_accommodation = {
           place_id: form.hotel_place_id,
           start_day_id: form.hotel_start_day,
@@ -212,6 +253,10 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
     outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)', background: 'var(--bg-input)',
   }
   const labelStyle = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.03em' }
+  const reservationDate = (() => { const [d] = (form.reservation_time || '').split('T'); return d || '' })()
+  const reservationTimeOnly = (() => { const [, t] = (form.reservation_time || '').split('T'); return t || '' })()
+  const reservationEndDate = (() => { const [d] = (form.reservation_end_time || '').split('T'); return d || '' })()
+  const reservationEndTimeOnly = (() => { const [, t] = (form.reservation_end_time || '').split('T'); return t || '' })()
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={reservation ? t('reservations.editTitle') : t('reservations.newTitle')} size="2xl">
@@ -275,15 +320,27 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
             </div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <label style={labelStyle}>{t('reservations.date')}</label>
+            <label style={labelStyle}>{form.type === 'car' ? t('reservations.pickupDate') : t('reservations.date')}</label>
             <CustomDatePicker
-              value={(() => { const [d] = (form.reservation_time || '').split('T'); return d || '' })()}
+              value={reservationDate}
               onChange={d => {
                 const [, t] = (form.reservation_time || '').split('T')
                 set('reservation_time', d ? (t ? `${d}T${t}` : d) : '')
               }}
             />
           </div>
+          {form.type === 'car' && (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <label style={labelStyle}>{t('reservations.dropoffDate')}</label>
+              <CustomDatePicker
+                value={reservationEndDate}
+                onChange={d => {
+                  const [, t] = (form.reservation_end_time || '').split('T')
+                  set('reservation_end_time', d ? (t ? `${d}T${t}` : d) : '')
+                }}
+              />
+            </div>
+          )}
         </div>
         )}
 
@@ -292,9 +349,9 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
           {form.type !== 'hotel' && (
             <>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <label style={labelStyle}>{t('reservations.startTime')}</label>
+                <label style={labelStyle}>{form.type === 'car' ? t('reservations.pickupTime') : t('reservations.startTime')}</label>
                 <CustomTimePicker
-                  value={(() => { const [, t] = (form.reservation_time || '').split('T'); return t || '' })()}
+                  value={reservationTimeOnly}
                   onChange={t => {
                     const [d] = (form.reservation_time || '').split('T')
                     const date = d || new Date().toISOString().split('T')[0]
@@ -303,8 +360,19 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                 />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <label style={labelStyle}>{t('reservations.endTime')}</label>
-                <CustomTimePicker value={form.reservation_end_time} onChange={v => set('reservation_end_time', v)} />
+                <label style={labelStyle}>{form.type === 'car' ? t('reservations.dropoffTime') : t('reservations.endTime')}</label>
+                <CustomTimePicker
+                  value={form.type === 'car' ? reservationEndTimeOnly : form.reservation_end_time}
+                  onChange={v => {
+                    if (form.type === 'car') {
+                      const [d] = (form.reservation_end_time || '').split('T')
+                      const date = d || reservationDate || new Date().toISOString().split('T')[0]
+                      set('reservation_end_time', v ? `${date}T${v}` : date)
+                    } else {
+                      set('reservation_end_time', v)
+                    }
+                  }}
+                />
               </div>
             </>
           )}
@@ -326,6 +394,46 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label style={labelStyle}>{t('reservations.locationAddress')}</label>
+            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mb-2">
+              {!hasMapsKey && (
+                <p className="mb-2 text-xs" style={{ color: 'var(--text-faint)' }}>
+                  {t('places.osmActive')}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={mapsSearch}
+                  onChange={e => setMapsSearch(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleMapsSearch())}
+                  placeholder={t('places.mapsSearchPlaceholder')}
+                  className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleMapsSearch}
+                  disabled={isSearchingMaps}
+                  className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-slate-700 disabled:opacity-60"
+                >
+                  {isSearchingMaps ? '...' : <Search className="w-4 h-4" />}
+                </button>
+              </div>
+              {mapsResults.length > 0 && (
+                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden max-h-40 overflow-y-auto mt-2">
+                  {mapsResults.map((result, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSelectMapsResult(result)}
+                      className="w-full text-left px-3 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-0"
+                    >
+                      <div className="font-medium text-sm">{result.name}</div>
+                      <div className="text-xs text-slate-500 truncate">{result.address}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <input type="text" value={form.location} onChange={e => set('location', e.target.value)}
               placeholder={t('reservations.locationPlaceholder')} style={inputStyle} />
           </div>

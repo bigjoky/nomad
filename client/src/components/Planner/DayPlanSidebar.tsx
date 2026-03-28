@@ -45,6 +45,19 @@ const NOTE_ICONS = [
 ]
 const NOTE_ICON_MAP = Object.fromEntries(NOTE_ICONS.map(({ id, Icon }) => [id, Icon]))
 function getNoteIcon(iconId) { return NOTE_ICON_MAP[iconId] || FileText }
+function formatReservationEnd(value, locale, timeFormat) {
+  if (!value) return ''
+  if (String(value).includes('T')) {
+    return new Date(value).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })
+  }
+  return value
+}
+
+function extractReservationDate(value) {
+  if (!value) return null
+  const [datePart] = String(value).split('T')
+  return datePart || null
+}
 
 const TYPE_ICONS = {
   flight: '✈️', hotel: '🏨', restaurant: '🍽️', train: '🚆',
@@ -74,6 +87,7 @@ interface DayPlanSidebarProps {
   onDeletePlace: (placeId: number) => void
   reservations?: Reservation[]
   onAddReservation: () => void
+  onEditReservation?: (reservation: Reservation) => void
 }
 
 export default function DayPlanSidebar({
@@ -85,6 +99,7 @@ export default function DayPlanSidebar({
   onAssignToDay, onRemoveAssignment, onEditPlace, onDeletePlace,
   reservations = [],
   onAddReservation,
+  onEditReservation,
 }: DayPlanSidebarProps) {
   const toast = useToast()
   const { t, language, locale } = useTranslation()
@@ -178,6 +193,32 @@ export default function DayPlanSidebar({
 
   const getDayAssignments = (dayId) =>
     (assignments[String(dayId)] || []).slice().sort((a, b) => a.order_index - b.order_index)
+
+  const getStandaloneReservations = (dayId) =>
+    (reservations || [])
+      .filter(r => {
+        if (r.assignment_id) return false
+        if (r.day_id === dayId) return true
+        const day = days.find(d => d.id === dayId)
+        const reservationDate = extractReservationDate(r.reservation_time)
+        const reservationEndDate = extractReservationDate(r.reservation_end_time)
+        return !!(
+          day?.date &&
+          (
+            (reservationDate && day.date === reservationDate) ||
+            (r.type === 'car' && reservationEndDate && day.date === reservationEndDate)
+          )
+        )
+      })
+      .slice()
+      .sort((a, b) => {
+        const aTime = a.reservation_time || ''
+        const bTime = b.reservation_time || ''
+        if (aTime && bTime) return aTime.localeCompare(bTime)
+        if (aTime) return -1
+        if (bTime) return 1
+        return (a.created_at || '').localeCompare(b.created_at || '')
+      })
 
   const getMergedItems = (dayId) => {
     const da = getDayAssignments(dayId)
@@ -427,6 +468,7 @@ export default function DayPlanSidebar({
           const loc = da.find(a => a.place?.lat && a.place?.lng)
           const isDragTarget = dragOverDayId === day.id
           const merged = getMergedItems(day.id)
+          const standaloneReservations = getStandaloneReservations(day.id)
           const dayNoteUi = noteUi[day.id]
           const placeItems = merged.filter(i => i.type === 'place')
 
@@ -564,7 +606,7 @@ export default function DayPlanSidebar({
                       handleMergedDrop(day.id, 'note', Number(noteId), lastItem.type, lastItem.data.id, true)
                   }}
                 >
-                  {merged.length === 0 && !dayNoteUi ? (
+                  {merged.length === 0 && standaloneReservations.length === 0 && !dayNoteUi ? (
                     <div
                       onDragOver={e => { e.preventDefault(); setDragOverDayId(day.id) }}
                       onDrop={e => handleDropOnDay(e, day.id)}
@@ -576,7 +618,8 @@ export default function DayPlanSidebar({
                       <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{t('dayplan.emptyDay')}</span>
                     </div>
                   ) : (
-                    merged.map((item, idx) => {
+                    <>
+                    {merged.map((item, idx) => {
                       const itemKey = item.type === 'place' ? `place-${item.data.id}` : `note-${item.data.id}`
                       const showDropLine = (!!draggingId || !!dropTargetKey) && dropTargetKey === itemKey
 
@@ -740,7 +783,7 @@ export default function DayPlanSidebar({
                                     {res.reservation_time?.includes('T') && (
                                       <span style={{ fontWeight: 400 }}>
                                         {new Date(res.reservation_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })}
-                                        {res.reservation_end_time && ` – ${res.reservation_end_time}`}
+                                        {res.reservation_end_time && ` – ${formatReservationEnd(res.reservation_end_time, locale, timeFormat)}`}
                                       </span>
                                     )}
                                     {(() => {
@@ -862,7 +905,83 @@ export default function DayPlanSidebar({
                         </div>
                         </React.Fragment>
                       )
-                    })
+                    })}
+                    {standaloneReservations.map(reservation => {
+                      const confirmed = reservation.status === 'confirmed'
+                      const ResIcon = RES_ICONS[reservation.type] || Ticket
+                      const meta = typeof reservation.metadata === 'string' ? JSON.parse(reservation.metadata || '{}') : (reservation.metadata || {})
+                      const reservationDate = extractReservationDate(reservation.reservation_time)
+                      const reservationEndDate = extractReservationDate(reservation.reservation_end_time)
+                      const isCarPickup = reservation.type === 'car' && !!day?.date && reservationDate === day.date
+                      const isCarDropoff = reservation.type === 'car' && !!day?.date && reservationEndDate === day.date && reservationEndDate !== reservationDate
+                      return (
+                        <div
+                          key={`reservation-${reservation.id}`}
+                          onClick={() => onEditReservation?.(reservation)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '8px 10px',
+                            margin: '4px 8px 8px',
+                            borderRadius: 8,
+                            border: `1px solid ${confirmed ? 'rgba(22,163,74,0.15)' : 'rgba(217,119,6,0.15)'}`,
+                            background: confirmed ? 'rgba(22,163,74,0.06)' : 'rgba(217,119,6,0.06)',
+                            cursor: onEditReservation ? 'pointer' : 'default',
+                          }}
+                        >
+                          <div style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'var(--bg-hover)' }}>
+                            <ResIcon size={13} style={{ color: confirmed ? '#16a34a' : '#d97706' }} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {reservation.title}
+                              </span>
+                              {(isCarPickup || isCarDropoff) && (
+                                <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-faint)', flexShrink: 0 }}>
+                                  {isCarPickup ? t('reservations.pickup') : t('reservations.dropoff')}
+                                </span>
+                              )}
+                              <span style={{ fontSize: 9, fontWeight: 600, color: confirmed ? '#16a34a' : '#d97706', flexShrink: 0 }}>
+                                {confirmed ? t('reservations.confirmed') : t('reservations.pending')}
+                              </span>
+                            </div>
+                            <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              {(reservation.reservation_time || (isCarDropoff && reservation.reservation_end_time)) && (
+                                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+                                  <Clock size={9} strokeWidth={2} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 3 }} />
+                                  {isCarDropoff
+                                    ? formatReservationEnd(reservation.reservation_end_time, locale, timeFormat)
+                                    : reservation.reservation_time.includes('T')
+                                      ? new Date(reservation.reservation_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: timeFormat === '12h' })
+                                      : reservation.reservation_time}
+                                  {!isCarDropoff && reservation.reservation_end_time ? ` – ${formatReservationEnd(reservation.reservation_end_time, locale, timeFormat)}` : ''}
+                                </span>
+                              )}
+                              {reservation.location && (
+                                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{reservation.location}</span>
+                              )}
+                              {meta?.flight_number && (
+                                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{meta.airline ? `${meta.airline} ` : ''}{meta.flight_number}</span>
+                              )}
+                              {!meta?.flight_number && meta?.train_number && (
+                                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{meta.train_number}</span>
+                              )}
+                            </div>
+                          </div>
+                          {onEditReservation && (
+                            <button
+                              onClick={e => { e.stopPropagation(); onEditReservation(reservation) }}
+                              style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', flexShrink: 0 }}
+                            >
+                              <Pencil size={11} />
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                    </>
                   )}
                   {/* Drop-Zone am Listenende — immer vorhanden als Drop-Target */}
                   <div

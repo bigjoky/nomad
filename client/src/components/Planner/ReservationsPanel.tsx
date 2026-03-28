@@ -47,6 +47,21 @@ function buildAssignmentLookup(days, assignments) {
   return map
 }
 
+function formatReservationEnd(value, locale, timeFormat) {
+  if (!value) return ''
+  if (String(value).includes('T')) {
+    const d = new Date(value)
+    return d.toLocaleString(locale, {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: timeFormat === '12h',
+    })
+  }
+  return value
+}
+
 interface ReservationCardProps {
   r: Reservation
   tripId: number
@@ -127,7 +142,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
                 <div style={{ flex: 1, padding: '5px 10px', textAlign: 'center', borderRight: '1px solid var(--border-faint)' }}>
                   <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{t('reservations.time')}</div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', marginTop: 1 }}>
-                    {fmtTime(r.reservation_time)}{r.reservation_end_time ? ` – ${r.reservation_end_time}` : ''}
+                    {fmtTime(r.reservation_time)}{r.reservation_end_time ? ` – ${formatReservationEnd(r.reservation_end_time, locale, timeFormat)}` : ''}
                   </div>
                 </div>
               )}
@@ -153,6 +168,8 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             if (meta.seat) cells.push({ label: t('reservations.meta.seat'), value: meta.seat })
             if (meta.check_in_time) cells.push({ label: t('reservations.meta.checkIn'), value: meta.check_in_time })
             if (meta.check_out_time) cells.push({ label: t('reservations.meta.checkOut'), value: meta.check_out_time })
+            if (r.type === 'car' && r.reservation_time) cells.push({ label: t('reservations.pickup'), value: fmtDate(r.reservation_time) + (r.reservation_time.includes('T') ? ` ${fmtTime(r.reservation_time)}` : '') })
+            if (r.type === 'car' && r.reservation_end_time) cells.push({ label: t('reservations.dropoff'), value: formatReservationEnd(r.reservation_end_time, locale, timeFormat) })
             if (cells.length === 0) return null
             return (
               <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', background: 'var(--bg-secondary)', boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }}>
