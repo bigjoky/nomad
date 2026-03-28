@@ -56,6 +56,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from package.json
+        id: version
+        run: echo "VERSION=$(node -p "require('./server/package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Download build digests
         uses: actions/download-artifact@v4
         with:
@@ -74,7 +80,7 @@ jobs:
         working-directory: /tmp/digests
         run: |
           mapfile -t digests < <(printf 'mauriceboe/nomad@sha256:%s\n' *)
-          docker buildx imagetools create -t mauriceboe/nomad:latest "${digests[@]}"
+          docker buildx imagetools create -t mauriceboe/nomad:latest -t mauriceboe/nomad:${{ steps.version.outputs.VERSION }} "${digests[@]}"
 
       - name: Inspect manifest
         run: docker buildx imagetools inspect mauriceboe/nomad:latest
