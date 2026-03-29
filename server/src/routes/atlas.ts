@@ -96,7 +96,10 @@ router.get('/stats', (req: Request, res: Response) => {
 
   const tripIds = trips.map(t => t.id);
   if (tripIds.length === 0) {
-    return res.json({ countries: [], trips: [], stats: { totalTrips: 0, totalPlaces: 0, totalCountries: 0, totalDays: 0 } });
+    // Still include manually marked countries even without trips
+    const manualCountries = db.prepare('SELECT country_code FROM visited_countries WHERE user_id = ?').all(userId) as { country_code: string }[];
+    const countries = manualCountries.map(mc => ({ code: mc.country_code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }));
+    return res.json({ countries, trips: [], stats: { totalTrips: 0, totalPlaces: 0, totalCountries: countries.length, totalDays: 0 } });
   }
 
   const placeholders = tripIds.map(() => '?').join(',');
