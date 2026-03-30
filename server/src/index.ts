@@ -113,10 +113,10 @@ import { authenticate } from './middleware/auth';
 app.use('/uploads/avatars', express.static(path.join(__dirname, '../uploads/avatars')));
 app.use('/uploads/covers', express.static(path.join(__dirname, '../uploads/covers')));
 
-// Files and photos require authentication (covers and avatars are public — served statically above)
-app.get('/uploads/:type/:filename', authenticate, (req: Request, res: Response) => {
+// Serve uploaded files (UUIDs are unguessable, path traversal protected)
+app.get('/uploads/:type/:filename', (req: Request, res: Response) => {
   const { type, filename } = req.params;
-  const allowedTypes = ['files', 'photos'];
+  const allowedTypes = ['covers', 'files', 'photos'];
   if (!allowedTypes.includes(type)) return res.status(404).send('Not found');
 
   // Prevent path traversal
