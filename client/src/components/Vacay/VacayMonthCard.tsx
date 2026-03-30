@@ -6,10 +6,15 @@ import type { HolidaysMap, VacayEntry } from '../../types'
 const WEEKDAYS_EN = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 const WEEKDAYS_DE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 const WEEKDAYS_ES = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do']
+const WEEKDAYS_FR = ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di']
+const WEEKDAYS_BR = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 const WEEKDAYS_AR = ['اث', 'ثل', 'أر', 'خم', 'جم', 'سب', 'أح']
+
 const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const MONTHS_DE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+const MONTHS_BR = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
 const MONTHS_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -37,9 +42,10 @@ export default function VacayMonthCard({
   onCellClick, companyMode, blockWeekends, weekendDays = [0, 6]
 }: VacayMonthCardProps) {
   const { language } = useTranslation()
-  const weekdays = language === 'de' ? WEEKDAYS_DE : language === 'es' ? WEEKDAYS_ES : language === 'ar' ? WEEKDAYS_AR : WEEKDAYS_EN
-  const monthNames = language === 'de' ? MONTHS_DE : language === 'es' ? MONTHS_ES : language === 'ar' ? MONTHS_AR : MONTHS_EN
-
+  
+  const weekdays = language === 'de' ? WEEKDAYS_DE : language === 'es' ? WEEKDAYS_ES : language === 'fr' ? WEEKDAYS_FR : language === 'br' ? WEEKDAYS_BR : language === 'ar' ? WEEKDAYS_AR : WEEKDAYS_EN
+  const monthNames = language === 'de' ? MONTHS_DE : language === 'es' ? MONTHS_ES : language === 'fr' ? MONTHS_FR : language === 'br' ? MONTHS_BR : language === 'ar' ? MONTHS_AR : MONTHS_EN
+  
   const weeks = useMemo(() => {
     const firstDay = new Date(year, month, 1)
     const daysInMonth = new Date(year, month + 1, 0).getDate()

@@ -52,7 +52,7 @@ interface UpdateInfo {
 }
 
 export default function AdminPage(): React.ReactElement {
-  const { demoMode } = useAuthStore()
+  const { demoMode, serverTimezone } = useAuthStore()
   const { t, locale } = useTranslation()
   const hour12 = useSettingsStore(s => s.settings.time_format) === '12h'
   const TABS = [
@@ -512,10 +512,10 @@ export default function AdminPage(): React.ReactElement {
                             </span>
                           </td>
                           <td className="px-5 py-3 text-sm text-slate-500">
-                            {new Date(u.created_at).toLocaleDateString(locale)}
+                            {new Date(u.created_at).toLocaleDateString(locale, { timeZone: serverTimezone })}
                           </td>
                           <td className="px-5 py-3 text-sm text-slate-500">
-                            {u.last_login ? new Date(u.last_login).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12 }) : '—'}
+                            {u.last_login ? new Date(u.last_login).toLocaleDateString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12, timeZone: serverTimezone }) : '—'}
                           </td>
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-2 justify-end">
@@ -584,7 +584,7 @@ export default function AdminPage(): React.ReactElement {
                           </div>
                           <div className="text-xs text-slate-400 mt-0.5">
                             {inv.used_count}/{inv.max_uses === 0 ? '∞' : inv.max_uses} {t('admin.invite.uses')}
-                            {inv.expires_at && ` · ${t('admin.invite.expiresAt')} ${new Date(inv.expires_at).toLocaleDateString(locale)}`}
+                            {inv.expires_at && ` · ${t('admin.invite.expiresAt')} ${new Date(inv.expires_at).toLocaleDateString(locale, { timeZone: serverTimezone })}`}
                             {` · ${t('admin.invite.createdBy')} ${inv.created_by_name}`}
                           </div>
                         </div>

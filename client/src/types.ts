@@ -280,6 +280,7 @@ export interface AppConfig {
   oidc_display_name?: string
   has_maps_key?: boolean
   allowed_file_types?: string
+  timezone?: string
 }
 
 // Translation function type

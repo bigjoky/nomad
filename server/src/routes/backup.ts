@@ -212,17 +212,30 @@ router.post('/upload-restore', uploadTmp.single('backup'), async (req: Request, 
 
 router.get('/auto-settings', (_req: Request, res: Response) => {
   try {
-    res.json({ settings: scheduler.loadSettings() });
+    const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    res.json({ settings: scheduler.loadSettings(), timezone: tz });
   } catch (err: unknown) {
     console.error('[backup] GET auto-settings:', err);
     res.status(500).json({ error: 'Could not load backup settings' });
   }
 });
 
+function parseIntField(raw: unknown, fallback: number): number {
+  if (typeof raw === 'number' && Number.isFinite(raw)) return Math.floor(raw);
+  if (typeof raw === 'string' && raw.trim() !== '') {
+    const n = parseInt(raw, 10);
+    if (Number.isFinite(n)) return n;
+  }
+  return fallback;
+}
+
 function parseAutoBackupBody(body: Record<string, unknown>): {
   enabled: boolean;
   interval: string;
   keep_days: number;
+  hour: number;
+  day_of_week: number;
+  day_of_month: number;
 } {
   const enabled = body.enabled === true || body.enabled === 'true' || body.enabled === 1;
   const rawInterval = body.interval;
@@ -230,17 +243,11 @@ function parseAutoBackupBody(body: Record<string, unknown>): {
     typeof rawInterval === 'string' && scheduler.VALID_INTERVALS.includes(rawInterval)
       ? rawInterval
       : 'daily';
-  const rawKeep = body.keep_days;
-  let keepNum: number;
-  if (typeof rawKeep === 'number' && Number.isFinite(rawKeep)) {
-    keepNum = Math.floor(rawKeep);
-  } else if (typeof rawKeep === 'string' && rawKeep.trim() !== '') {
-    keepNum = parseInt(rawKeep, 10);
-  } else {
-    keepNum = NaN;
-  }
-  const keep_days = Number.isFinite(keepNum) && keepNum >= 0 ? keepNum : 7;
-  return { enabled, interval, keep_days };
+  const keep_days = Math.max(0, parseIntField(body.keep_days, 7));
+  const hour = Math.min(23, Math.max(0, parseIntField(body.hour, 2)));
+  const day_of_week = Math.min(6, Math.max(0, parseIntField(body.day_of_week, 0)));
+  const day_of_month = Math.min(28, Math.max(1, parseIntField(body.day_of_month, 1)));
+  return { enabled, interval, keep_days, hour, day_of_week, day_of_month };
 }
 
 router.put('/auto-settings', (req: Request, res: Response) => {

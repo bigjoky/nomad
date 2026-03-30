@@ -28,6 +28,11 @@ function getPendingMfaSecret(userId: number): string | null {
   return row.secret;
 }
 
+function utcSuffix(ts: string | null | undefined): string | null {
+  if (!ts) return null;
+  return ts.endsWith('Z') ? ts : ts.replace(' ', 'T') + 'Z';
+}
+
 function stripUserForClient(user: User): Record<string, unknown> {
   const {
     password_hash: _p,
@@ -39,6 +44,9 @@ function stripUserForClient(user: User): Record<string, unknown> {
   } = user;
   return {
     ...rest,
+    created_at: utcSuffix(rest.created_at),
+    updated_at: utcSuffix(rest.updated_at),
+    last_login: utcSuffix(rest.last_login),
     mfa_enabled: !!(user.mfa_enabled === 1 || user.mfa_enabled === true),
   };
 }
@@ -146,6 +154,7 @@ router.get('/app-config', (_req: Request, res: Response) => {
     demo_mode: isDemo,
     demo_email: isDemo ? 'demo@trek.app' : undefined,
     demo_password: isDemo ? 'demo12345' : undefined,
+    timezone: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   });
 });
 

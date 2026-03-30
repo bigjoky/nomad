@@ -23,6 +23,7 @@ interface AuthState {
   error: string | null
   demoMode: boolean
   hasMapsKey: boolean
+  serverTimezone: string
 
   login: (email: string, password: string) => Promise<LoginResult>
   completeMfaLogin: (mfaToken: string, code: string) => Promise<AuthResponse>
@@ -36,6 +37,7 @@ interface AuthState {
   deleteAvatar: () => Promise<void>
   setDemoMode: (val: boolean) => void
   setHasMapsKey: (val: boolean) => void
+  setServerTimezone: (tz: string) => void
   demoLogin: () => Promise<AuthResponse>
 }
 
@@ -47,6 +49,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   error: null,
   demoMode: localStorage.getItem('demo_mode') === 'true',
   hasMapsKey: false,
+  serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null })
@@ -201,6 +204,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   setHasMapsKey: (val: boolean) => set({ hasMapsKey: val }),
+  setServerTimezone: (tz: string) => set({ serverTimezone: tz }),
 
   demoLogin: async () => {
     set({ isLoading: true, error: null })

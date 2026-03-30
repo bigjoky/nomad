@@ -12,6 +12,11 @@ const router = express.Router();
 
 router.use(authenticate, adminOnly);
 
+function utcSuffix(ts: string | null | undefined): string | null {
+  if (!ts) return null;
+  return ts.endsWith('Z') ? ts : ts.replace(' ', 'T') + 'Z';
+}
+
 router.get('/users', (req: Request, res: Response) => {
   const users = db.prepare(
     'SELECT id, username, email, role, created_at, updated_at, last_login FROM users ORDER BY created_at DESC'
@@ -21,7 +26,13 @@ router.get('/users', (req: Request, res: Response) => {
     const { getOnlineUserIds } = require('../websocket');
     onlineUserIds = getOnlineUserIds();
   } catch { /* */ }
-  const usersWithStatus = users.map(u => ({ ...u, online: onlineUserIds.has(u.id) }));
+  const usersWithStatus = users.map(u => ({
+    ...u,
+    created_at: utcSuffix(u.created_at),
+    updated_at: utcSuffix(u.updated_at as string),
+    last_login: utcSuffix(u.last_login),
+    online: onlineUserIds.has(u.id),
+  }));
   res.json({ users: usersWithStatus });
 });
 

@@ -11,9 +11,9 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Server-Dependencies installieren (better-sqlite3 braucht Build-Tools)
+# Timezone support + Server-Dependencies (better-sqlite3 braucht Build-Tools)
 COPY server/package*.json ./
-RUN apk add --no-cache python3 make g++ && \
+RUN apk add --no-cache tzdata python3 make g++ && \
     npm ci --production && \
     apk del python3 make g++
 

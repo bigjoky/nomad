@@ -9,6 +9,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-}
       # - ALLOWED_ORIGINS=https://yourdomain.com  # Optional: restrict CORS to specific origins
       - PORT=3000
+      - TZ=${TZ:-UTC}
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
