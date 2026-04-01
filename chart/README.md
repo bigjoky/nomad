@@ -14,7 +14,6 @@ This is a minimal Helm chart for deploying the TREK app.
 
 ```sh
 helm install trek ./chart \
-  --set secretEnv.JWT_SECRET=your_jwt_secret \
   --set ingress.enabled=true \
   --set ingress.hosts[0].host=yourdomain.com
 ```
@@ -29,6 +28,6 @@ See `values.yaml` for more options.
 ## Notes
 - Ingress is off by default. Enable and configure hosts for your domain.
 - PVCs require a default StorageClass or specify one as needed.
-- `JWT_SECRET` should be set for production use; auto-generated and persisted to the data PVC if not provided.
+- `JWT_SECRET` is managed entirely by the server — auto-generated into the data PVC on first start and rotatable via the admin panel (Settings → Danger Zone). No Helm configuration needed.
 - `ENCRYPTION_KEY` encrypts stored secrets (API keys, MFA, SMTP, OIDC) at rest. Auto-generated and persisted to the data PVC if not provided. **Upgrading:** if a previous version used `JWT_SECRET`-derived encryption, set `secretEnv.ENCRYPTION_KEY` to your old `JWT_SECRET` value to keep existing encrypted data readable, then re-save credentials via the admin panel.
 - If using ingress, you must manually keep `env.ALLOWED_ORIGINS` and `ingress.hosts` in sync to ensure CORS works correctly. The chart does not sync these automatically.

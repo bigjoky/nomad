@@ -36,16 +36,11 @@ spec:
             - configMapRef:
                 name: {{ include "trek.fullname" . }}-config
           env:
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
-                  key: {{ .Values.existingSecretKey | default "JWT_SECRET" }}
             - name: ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
-                  key: ENCRYPTION_KEY
+                  key: {{ .Values.existingSecretKey | default "ENCRYPTION_KEY" }}
                   optional: true
           volumeMounts:
             - name: data

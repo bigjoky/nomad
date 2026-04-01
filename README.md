@@ -136,7 +136,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - JWT_SECRET=${JWT_SECRET:-} # Auto-generated if not set; persist across restarts for stable sessions
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-} # Auto-generated if not set. If upgrading, set to your old JWT_SECRET value to keep existing encrypted secrets readable.
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-} # Comma-separated origins for CORS and email notification links
       - TZ=${TZ:-UTC} # Timezone for logs, reminders and scheduled tasks (e.g. Europe/Berlin)
@@ -246,7 +245,6 @@ trek.yourdomain.com {
 | **Core** | | |
 | `PORT` | Server port | `3000` |
 | `NODE_ENV` | Environment (`production` / `development`) | `production` |
-| `JWT_SECRET` | JWT signing secret; auto-generated and saved to `data/` if not set | Auto-generated |
 | `ENCRYPTION_KEY` | At-rest encryption key for stored secrets (API keys, MFA, SMTP, OIDC); auto-generated and saved to `data/` if not set. **Upgrading:** set to your old `JWT_SECRET` value to keep existing encrypted data readable, then re-save credentials to migrate | Auto-generated |
 | `TZ` | Timezone for logs, reminders and cron jobs (e.g. `Europe/Berlin`) | `UTC` |
 | `LOG_LEVEL` | `info` = concise user actions, `debug` = verbose details | `info` |

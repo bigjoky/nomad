@@ -2,28 +2,27 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-let _jwtSecret: string = process.env.JWT_SECRET || '';
+const dataDir = path.resolve(__dirname, '../data');
 
-if (!_jwtSecret) {
-  const dataDir = path.resolve(__dirname, '../data');
-  const secretFile = path.join(dataDir, '.jwt_secret');
+// JWT_SECRET is always managed by the server — auto-generated on first start and
+// persisted to data/.jwt_secret. Use the admin panel to rotate it; do not set it
+// via environment variable (env var would override a rotation on next restart).
+const jwtSecretFile = path.join(dataDir, '.jwt_secret');
+let _jwtSecret: string;
 
+try {
+  _jwtSecret = fs.readFileSync(jwtSecretFile, 'utf8').trim();
+} catch {
+  _jwtSecret = crypto.randomBytes(32).toString('hex');
   try {
-    _jwtSecret = fs.readFileSync(secretFile, 'utf8').trim();
-  } catch {
-    _jwtSecret = crypto.randomBytes(32).toString('hex');
-    try {
-      if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-      fs.writeFileSync(secretFile, _jwtSecret, { mode: 0o600 });
-      console.log('Generated and saved JWT secret to', secretFile);
-    } catch (writeErr: unknown) {
-      console.warn('WARNING: Could not persist JWT secret to disk:', writeErr instanceof Error ? writeErr.message : writeErr);
-      console.warn('Sessions will reset on server restart. Set JWT_SECRET env var for persistent sessions.');
-    }
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(jwtSecretFile, _jwtSecret, { mode: 0o600 });
+    console.log('Generated and saved JWT secret to', jwtSecretFile);
+  } catch (writeErr: unknown) {
+    console.warn('WARNING: Could not persist JWT secret to disk:', writeErr instanceof Error ? writeErr.message : writeErr);
+    console.warn('Sessions will reset on server restart.');
   }
 }
-
-const JWT_SECRET_IS_GENERATED = !process.env.JWT_SECRET;
 
 // export let so TypeScript's CJS output keeps exports.JWT_SECRET live
 // (generates `exports.JWT_SECRET = JWT_SECRET = newVal` inside updateJwtSecret)
@@ -48,7 +47,6 @@ export function updateJwtSecret(newSecret: string): void {
 let ENCRYPTION_KEY: string = process.env.ENCRYPTION_KEY || '';
 
 if (!ENCRYPTION_KEY) {
-  const dataDir = path.resolve(__dirname, '../data');
   const keyFile = path.join(dataDir, '.encryption_key');
 
   try {
@@ -66,4 +64,4 @@ if (!ENCRYPTION_KEY) {
   }
 }
 
-export { JWT_SECRET_IS_GENERATED, ENCRYPTION_KEY };
+export { ENCRYPTION_KEY };

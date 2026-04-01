@@ -19,10 +19,10 @@ env:
 # NOTE: If using ingress, ensure env.ALLOWED_ORIGINS matches the domains in ingress.hosts for proper CORS configuration.
 
 
-# Secret environment variables stored in a Kubernetes Secret
+# Secret environment variables stored in a Kubernetes Secret.
+# JWT_SECRET is managed entirely by the server (auto-generated into the data PVC,
+# rotatable via the admin panel) — it is not configured here.
 secretEnv:
-  # JWT signing secret. Auto-generated and persisted to the data PVC if not set.
-  JWT_SECRET: ""
   # At-rest encryption key for stored secrets (API keys, MFA, SMTP, OIDC, etc.).
   # Auto-generated and persisted to the data PVC if not set.
   # Upgrading from a version that used JWT_SECRET for encryption: set this to your
@@ -30,13 +30,12 @@ secretEnv:
   # credentials via the admin panel and rotate to a fresh random key.
   ENCRYPTION_KEY: ""
 
-# If true, random values for JWT_SECRET and ENCRYPTION_KEY are generated at install
-# and preserved across upgrades (overrides secretEnv values)
-generateJwtSecret: false
+# If true, a random ENCRYPTION_KEY is generated at install and preserved across upgrades
+generateEncryptionKey: false
 
-# If set, use an existing Kubernetes secret for JWT_SECRET (and optionally ENCRYPTION_KEY)
+# If set, use an existing Kubernetes secret that contains ENCRYPTION_KEY
 existingSecret: ""
-existingSecretKey: JWT_SECRET
+existingSecretKey: ENCRYPTION_KEY
 
 persistence:
   enabled: true

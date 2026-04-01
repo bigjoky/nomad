@@ -1,5 +1,4 @@
 import 'dotenv/config';
-import { JWT_SECRET_IS_GENERATED } from './config';
 import express, { Request, Response, NextFunction } from 'express';
 import { enforceGlobalMfaPolicy } from './middleware/mfaPolicy';
 import cors from 'cors';
@@ -268,9 +267,6 @@ const server = app.listen(PORT, () => {
     '──────────────────────────────────────',
   ];
   banner.forEach(l => console.log(l));
-  if (JWT_SECRET_IS_GENERATED) {
-    sLogWarn('[SECURITY WARNING] JWT_SECRET was auto-generated. Sessions will not persist across restarts. Set JWT_SECRET env var for production use.');
-  }
   if (process.env.DEMO_MODE === 'true') sLogInfo('Demo mode: ENABLED');
   if (process.env.DEMO_MODE === 'true' && process.env.NODE_ENV === 'production') {
     sLogWarn('SECURITY WARNING: DEMO_MODE is enabled in production!');
