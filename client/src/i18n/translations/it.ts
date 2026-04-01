@@ -246,6 +246,7 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'settings.mfa.toastEnabled': 'Autenticazione a due fattori abilitata',
   'settings.mfa.toastDisabled': 'Autenticazione a due fattori disabilitata',
   'settings.mfa.demoBlocked': 'Non disponibile in modalità demo',
+  'settings.mustChangePassword': 'Devi cambiare la password prima di continuare. Imposta una nuova password qui sotto.',
   'admin.notifications.title': 'Notifiche',
   'admin.notifications.hint': 'Scegli un canale di notifica. Solo uno può essere attivo alla volta.',
   'admin.notifications.none': 'Disattivato',
@@ -691,7 +692,6 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'atlas.statsTab': 'Statistiche',
   'atlas.bucketTab': 'Lista desideri',
   'atlas.addBucket': 'Aggiungi alla lista desideri',
-  'atlas.bucketNamePlaceholder': 'Luogo o destinazione...',
   'atlas.bucketNotesPlaceholder': 'Note (opzionale)',
   'atlas.bucketEmpty': 'La tua lista desideri è vuota',
   'atlas.bucketEmptyHint': 'Aggiungi luoghi che sogni di visitare',
@@ -724,6 +724,7 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'atlas.tripPlural': 'Viaggi',
   'atlas.placeVisited': 'Luogo visitato',
   'atlas.placesVisited': 'Luoghi visitati',
+  'atlas.searchCountry': 'Cerca un paese...',
 
   // Trip Planner
   'trip.tabs.plan': 'Programma',
@@ -746,6 +747,7 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'trip.toast.reservationAdded': 'Prenotazione aggiunta',
   'trip.toast.deleted': 'Eliminato',
   'trip.confirm.deletePlace': 'Sei sicuro di voler eliminare questo luogo?',
+  'trip.loadingPhotos': 'Caricamento foto dei luoghi...',
 
   // Day Plan Sidebar
   'dayplan.emptyDay': 'Nessun luogo programmato per questo giorno',

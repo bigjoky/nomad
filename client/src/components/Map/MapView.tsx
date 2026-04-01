@@ -34,7 +34,12 @@ function escAttr(s) {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+const iconCache = new Map<string, L.DivIcon>()
+
 function createPlaceIcon(place, orderNumbers, isSelected) {
+  const cacheKey = `${place.id}:${isSelected}:${place.image_url || ''}:${place.category_color || ''}:${place.category_icon || ''}:${orderNumbers?.join(',') || ''}`
+  const cached = iconCache.get(cacheKey)
+  if (cached) return cached
   const size = isSelected ? 44 : 36
   const borderColor = isSelected ? '#111827' : 'white'
   const borderWidth = isSelected ? 3 : 2.5
@@ -42,9 +47,8 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
     ? '0 0 0 3px rgba(17,24,39,0.25), 0 4px 14px rgba(0,0,0,0.3)'
     : '0 2px 8px rgba(0,0,0,0.22)'
   const bgColor = place.category_color || '#6b7280'
-  const icon = place.category_icon || '📍'
 
-  // Number badges (bottom-right), supports multiple numbers for duplicate places
+  // Number badges (bottom-right)
   let badgeHtml = ''
   if (orderNumbers && orderNumbers.length > 0) {
     const label = orderNumbers.join(' · ')
@@ -62,28 +66,30 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
     ">${label}</span>`
   }
 
-  if (place.image_url) {
-    return L.divIcon({
+  // Base64 data URL thumbnails — no external image fetch during zoom
+  // Only use base64 data URLs for markers — external URLs cause zoom lag
+  if (place.image_url && place.image_url.startsWith('data:')) {
+    const imgIcon = L.divIcon({
       className: '',
       html: `<div style="
         width:${size}px;height:${size}px;border-radius:50%;
         border:${borderWidth}px solid ${borderColor};
         box-shadow:${shadow};
-        overflow:visible;background:${bgColor};
-        cursor:pointer;flex-shrink:0;position:relative;
+        overflow:hidden;background:${bgColor};
+        cursor:pointer;position:relative;
       ">
-        <div style="width:100%;height:100%;border-radius:50%;overflow:hidden;">
-          <img src="${escAttr(place.image_url)}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;" />
-        </div>
+        <img src="${place.image_url}" width="${size}" height="${size}" style="display:block;border-radius:50%;object-fit:cover;" />
         ${badgeHtml}
       </div>`,
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
       tooltipAnchor: [size / 2 + 6, 0],
     })
+    iconCache.set(cacheKey, imgIcon)
+    return imgIcon
   }
 
-  return L.divIcon({
+  const fallbackIcon = L.divIcon({
     className: '',
     html: `<div style="
       width:${size}px;height:${size}px;border-radius:50%;
@@ -92,6 +98,7 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
       background:${bgColor};
       display:flex;align-items:center;justify-content:center;
       cursor:pointer;position:relative;
+      will-change:transform;contain:layout style;
     ">
       ${categoryIconSvg(place.category_icon, isSelected ? 18 : 15)}
       ${badgeHtml}
@@ -100,6 +107,8 @@ function createPlaceIcon(place, orderNumbers, isSelected) {
     iconAnchor: [size / 2, size / 2],
     tooltipAnchor: [size / 2 + 6, 0],
   })
+  iconCache.set(cacheKey, fallbackIcon)
+  return fallbackIcon
 }
 
 interface SelectionControllerProps {
@@ -174,6 +183,16 @@ interface MapClickHandlerProps {
   onClick: ((e: L.LeafletMouseEvent) => void) | null
 }
 
+function ZoomTracker({ onZoomStart, onZoomEnd }: { onZoomStart: () => void; onZoomEnd: () => void }) {
+  const map = useMap()
+  useEffect(() => {
+    map.on('zoomstart', onZoomStart)
+    map.on('zoomend', onZoomEnd)
+    return () => { map.off('zoomstart', onZoomStart); map.off('zoomend', onZoomEnd) }
+  }, [map, onZoomStart, onZoomEnd])
+  return null
+}
+
 function MapClickHandler({ onClick }: MapClickHandlerProps) {
   const map = useMap()
   useEffect(() => {
@@ -245,8 +264,7 @@ function RouteLabel({ midpoint, walkingText, drivingText }: RouteLabelProps) {
 }
 
 // Module-level photo cache shared with PlaceAvatar
-const mapPhotoCache = new Map()
-const mapPhotoInFlight = new Set()
+import { getCached, isLoading, fetchPhoto, onPhotoLoaded, onThumbReady, getAllThumbs } from '../../services/photoService'
 
 // Live location tracker — blue dot with pulse animation (like Apple/Google Maps)
 function LocationTracker() {
@@ -366,51 +384,46 @@ export const MapView = memo(function MapView({
     const right = rightWidth + 40
     return { paddingTopLeft: [left, top], paddingBottomRight: [right, bottom] }
   }, [leftWidth, rightWidth, hasInspector])
-  const [photoUrls, setPhotoUrls] = useState({})
 
-  // Fetch photos for places with concurrency limit to avoid blocking map rendering
+  // photoUrls: only base64 thumbs for smooth map zoom
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>(getAllThumbs)
+
+  // Fetch photos via shared service — subscribe to thumb (base64) availability
+  const placeIds = useMemo(() => places.map(p => p.id).join(','), [places])
   useEffect(() => {
-    const queue = places.filter(place => {
-      if (place.image_url) return false
+    if (!places || places.length === 0) return
+    const cleanups: (() => void)[] = []
+
+    const setThumb = (cacheKey: string, thumb: string) => {
+      iconCache.clear()
+      setPhotoUrls(prev => prev[cacheKey] === thumb ? prev : { ...prev, [cacheKey]: thumb })
+    }
+
+    for (const place of places) {
+      if (place.image_url) continue
       const cacheKey = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
-      if (!cacheKey) return false
-      if (mapPhotoCache.has(cacheKey)) {
-        const cached = mapPhotoCache.get(cacheKey)
-        if (cached) setPhotoUrls(prev => prev[cacheKey] === cached ? prev : ({ ...prev, [cacheKey]: cached }))
-        return false
+      if (!cacheKey) continue
+
+      const cached = getCached(cacheKey)
+      if (cached?.thumbDataUrl) {
+        setThumb(cacheKey, cached.thumbDataUrl)
+        continue
       }
-      if (mapPhotoInFlight.has(cacheKey)) return false
-      const photoId = place.google_place_id || place.osm_id
-      if (!photoId && !(place.lat && place.lng)) return false
-      return true
-    })
 
-    let active = 0
-    const MAX_CONCURRENT = 3
-    let idx = 0
+      // Subscribe for when thumb becomes available
+      cleanups.push(onThumbReady(cacheKey, thumb => setThumb(cacheKey, thumb)))
 
-    const fetchNext = () => {
-      while (active < MAX_CONCURRENT && idx < queue.length) {
-        const place = queue[idx++]
-        const cacheKey = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
+      // Start fetch if not yet started
+      if (!cached && !isLoading(cacheKey)) {
         const photoId = place.google_place_id || place.osm_id
-        mapPhotoInFlight.add(cacheKey)
-        active++
-        mapsApi.placePhoto(photoId || `coords:${place.lat}:${place.lng}`, place.lat, place.lng, place.name)
-          .then(data => {
-            if (data.photoUrl) {
-              mapPhotoCache.set(cacheKey, data.photoUrl)
-              setPhotoUrls(prev => ({ ...prev, [cacheKey]: data.photoUrl }))
-            } else {
-              mapPhotoCache.set(cacheKey, null)
-            }
-          })
-          .catch(() => { mapPhotoCache.set(cacheKey, null) })
-          .finally(() => { mapPhotoInFlight.delete(cacheKey); active--; fetchNext() })
+        if (photoId || (place.lat && place.lng)) {
+          fetchPhoto(cacheKey, photoId || `coords:${place.lat}:${place.lng}`, place.lat, place.lng, place.name)
+        }
       }
     }
-    fetchNext()
-  }, [places])
+
+    return () => cleanups.forEach(fn => fn())
+  }, [placeIds])
 
   const clusterIconCreateFunction = useCallback((cluster) => {
     const count = cluster.getChildCount()
@@ -426,10 +439,10 @@ export const MapView = memo(function MapView({
 
   const markers = useMemo(() => places.map((place) => {
     const isSelected = place.id === selectedPlaceId
-    const cacheKey = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
-    const resolvedPhotoUrl = place.image_url || (cacheKey && photoUrls[cacheKey]) || null
+    const pck = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
+    const resolvedPhoto = place.image_url || (pck && photoUrls[pck]) || null
     const orderNumbers = dayOrderMap[place.id] ?? null
-    const icon = createPlaceIcon({ ...place, image_url: resolvedPhotoUrl }, orderNumbers, isSelected)
+    const icon = createPlaceIcon({ ...place, image_url: resolvedPhoto }, orderNumbers, isSelected)
 
     return (
       <Marker
@@ -474,6 +487,7 @@ export const MapView = memo(function MapView({
 
   return (
     <MapContainer
+      id="trek-map"
       center={center}
       zoom={zoom}
       zoomControl={false}
@@ -484,7 +498,9 @@ export const MapView = memo(function MapView({
         url={tileUrl}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         maxZoom={19}
-        keepBuffer={4}
+        keepBuffer={8}
+        updateWhenZooming={false}
+        updateWhenIdle={true}
         referrerPolicy="strict-origin-when-cross-origin"
       />
 
@@ -497,12 +513,14 @@ export const MapView = memo(function MapView({
 
       <MarkerClusterGroup
         chunkedLoading
+        chunkInterval={30}
+        chunkDelay={0}
         maxClusterRadius={30}
         disableClusteringAtZoom={11}
         spiderfyOnMaxZoom
         showCoverageOnHover={false}
         zoomToBoundsOnClick
-        singleMarkerMode
+        animate={false}
         iconCreateFunction={clusterIconCreateFunction}
       >
         {markers}

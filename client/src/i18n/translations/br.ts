@@ -294,6 +294,7 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'settings.mcp.toast.createError': 'Falha ao criar token',
   'settings.mcp.toast.deleted': 'Token excluído',
   'settings.mcp.toast.deleteError': 'Falha ao excluir token',
+  'settings.mustChangePassword': 'Você deve alterar sua senha antes de continuar. Defina uma nova senha abaixo.',
 
   // Login
   'login.error': 'Falha no login. Verifique suas credenciais.',
@@ -503,11 +504,13 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'admin.addons.disabled': 'Desativado',
   'admin.addons.type.trip': 'Viagem',
   'admin.addons.type.global': 'Global',
+  'admin.addons.type.integration': 'Integração',
   'admin.addons.tripHint': 'Disponível como aba em cada viagem',
   'admin.addons.globalHint': 'Disponível como seção própria na navegação principal',
   'admin.addons.toast.updated': 'Complemento atualizado',
   'admin.addons.toast.error': 'Falha ao atualizar complemento',
   'admin.addons.noAddons': 'Nenhum complemento disponível',
+  'admin.addons.integrationHint': 'Serviços de backend e integrações de API sem página dedicada',
   // Weather info
   'admin.weather.title': 'Dados meteorológicos',
   'admin.weather.badge': 'Desde 24 de março de 2026',
@@ -675,7 +678,6 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'atlas.statsTab': 'Estatísticas',
   'atlas.bucketTab': 'Lista de desejos',
   'atlas.addBucket': 'Adicionar à lista de desejos',
-  'atlas.bucketNamePlaceholder': 'Lugar ou destino...',
   'atlas.bucketNotesPlaceholder': 'Notas (opcional)',
   'atlas.bucketEmpty': 'Sua lista de desejos está vazia',
   'atlas.bucketEmptyHint': 'Adicione lugares que sonha em visitar',
@@ -688,7 +690,6 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'atlas.nextTrip': 'Próxima viagem',
   'atlas.daysLeft': 'dias restantes',
   'atlas.streak': 'Sequência',
-  'atlas.year': 'ano',
   'atlas.years': 'anos',
   'atlas.yearInRow': 'ano seguido',
   'atlas.yearsInRow': 'anos seguidos',
@@ -730,6 +731,7 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'trip.toast.reservationAdded': 'Reserva adicionada',
   'trip.toast.deleted': 'Excluído',
   'trip.confirm.deletePlace': 'Tem certeza de que deseja excluir este lugar?',
+  'trip.loadingPhotos': 'Carregando fotos dos lugares...',
 
   // Day Plan Sidebar
   'dayplan.emptyDay': 'Nenhum lugar planejado para este dia',
@@ -1414,6 +1416,20 @@ const br: Record<string, string | { name: string; category: string }[]> = {
 
   // Permissions
   'admin.tabs.permissions': 'Permissões',
+  'admin.tabs.mcpTokens': 'Tokens MCP',
+  'admin.mcpTokens.title': 'Tokens MCP',
+  'admin.mcpTokens.subtitle': 'Gerenciar tokens de API de todos os usuários',
+  'admin.mcpTokens.owner': 'Proprietário',
+  'admin.mcpTokens.tokenName': 'Nome do Token',
+  'admin.mcpTokens.created': 'Criado',
+  'admin.mcpTokens.lastUsed': 'Último uso',
+  'admin.mcpTokens.never': 'Nunca',
+  'admin.mcpTokens.empty': 'Nenhum token MCP foi criado ainda',
+  'admin.mcpTokens.deleteTitle': 'Excluir Token',
+  'admin.mcpTokens.deleteMessage': 'Isso revogará o token imediatamente. O usuário perderá o acesso MCP por este token.',
+  'admin.mcpTokens.deleteSuccess': 'Token excluído',
+  'admin.mcpTokens.deleteError': 'Falha ao excluir token',
+  'admin.mcpTokens.loadError': 'Falha ao carregar tokens',
   'perm.title': 'Configurações de Permissões',
   'perm.subtitle': 'Controle quem pode realizar ações no aplicativo',
   'perm.saved': 'Configurações de permissões salvas',

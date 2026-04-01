@@ -246,6 +246,7 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'settings.mfa.toastEnabled': 'Kétfaktoros hitelesítés engedélyezve',
   'settings.mfa.toastDisabled': 'Kétfaktoros hitelesítés kikapcsolva',
   'settings.mfa.demoBlocked': 'Demo módban nem érhető el',
+  'settings.mustChangePassword': 'A folytatás előtt meg kell változtatnod a jelszavad. Kérjük, adj meg egy új jelszót alább.',
   'admin.notifications.title': 'Értesítések',
   'admin.notifications.hint': 'Válasszon értesítési csatornát. Egyszerre csak egy lehet aktív.',
   'admin.notifications.none': 'Kikapcsolva',
@@ -746,6 +747,7 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'trip.toast.reservationAdded': 'Foglalás hozzáadva',
   'trip.toast.deleted': 'Törölve',
   'trip.confirm.deletePlace': 'Biztosan törölni szeretnéd ezt a helyet?',
+  'trip.loadingPhotos': 'Helyek fotóinak betöltése...',
 
   // Napi terv oldalsáv
   'dayplan.emptyDay': 'Nincs tervezett hely erre a napra',

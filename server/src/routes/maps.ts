@@ -154,7 +154,7 @@ async function fetchWikimediaPhoto(lat: number, lng: number, name?: string): Pro
     ggslimit: '5',
     prop: 'imageinfo',
     iiprop: 'url|extmetadata|mime',
-    iiurlwidth: '600',
+    iiurlwidth: '400',
   });
   try {
     const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { 'User-Agent': UA } });
@@ -380,11 +380,14 @@ router.get('/place-photo/:placeId', authenticate, async (req: Request, res: Resp
   const { placeId } = req.params;
 
   const cached = photoCache.get(placeId);
-  if (cached && Date.now() - cached.fetchedAt < PHOTO_TTL) {
-    if (cached.error) {
-      return res.status(404).json({ error: `(Cache) No photo available` });
+  const ERROR_TTL = 5 * 60 * 1000; // 5 min for errors
+  if (cached) {
+    const ttl = cached.error ? ERROR_TTL : PHOTO_TTL;
+    if (Date.now() - cached.fetchedAt < ttl) {
+      if (cached.error) return res.status(404).json({ error: `(Cache) No photo available` });
+      return res.json({ photoUrl: cached.photoUrl, attribution: cached.attribution });
     }
-    return res.json({ photoUrl: cached.photoUrl, attribution: cached.attribution });
+    photoCache.delete(placeId);
   }
 
   // Wikimedia Commons fallback for OSM places (using lat/lng query params)
@@ -436,7 +439,7 @@ router.get('/place-photo/:placeId', authenticate, async (req: Request, res: Resp
     const attribution = photo.authorAttributions?.[0]?.displayName || null;
 
     const mediaRes = await fetch(
-      `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=600&skipHttpRedirect=true`,
+      `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=400&skipHttpRedirect=true`,
       { headers: { 'X-Goog-Api-Key': apiKey } }
     );
     const mediaData = await mediaRes.json() as { photoUri?: string };
