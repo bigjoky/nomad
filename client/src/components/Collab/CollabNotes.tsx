@@ -1350,6 +1350,41 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
             </div>
             <div className="collab-note-md-full" style={{ padding: '16px 20px', overflowY: 'auto', fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.7 }}>
               <Markdown remarkPlugins={[remarkGfm]}>{viewingNote.content || ''}</Markdown>
+              {(viewingNote.attachments || []).length > 0 && (
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-primary)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>{t('files.title')}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {(viewingNote.attachments || []).map(a => {
+                      const isImage = a.mime_type?.startsWith('image/')
+                      const ext = (a.original_name || '').split('.').pop()?.toUpperCase() || '?'
+                      return (
+                        <div key={a.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, maxWidth: 72 }}>
+                          {isImage ? (
+                            <AuthedImg src={a.url} alt={a.original_name}
+                              style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', transition: 'transform 0.12s, box-shadow 0.12s' }}
+                              onClick={() => setPreviewFile(a)}
+                              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
+                              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }} />
+                          ) : (
+                            <div title={a.original_name} onClick={() => setPreviewFile(a)}
+                              style={{
+                                width: 64, height: 64, borderRadius: 8, cursor: 'pointer',
+                                background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
+                                transition: 'transform 0.12s, box-shadow 0.12s',
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
+                              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
+                            </div>
+                          )}
+                          <span style={{ fontSize: 9, color: 'var(--text-faint)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{a.original_name}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>,
