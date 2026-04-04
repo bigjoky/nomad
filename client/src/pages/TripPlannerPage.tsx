@@ -114,8 +114,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
       const map = {}
       data.addons.forEach(a => { map[a.id] = true })
       // Check if any photo provider is enabled (for memories tab to show)
-      const hasPhotoProviders = data.addons.some(a => a.type === 'photo_provider' && a.enabled)
-      setEnabledAddons({ packing: !!map.packing, budget: !!map.budget, documents: !!map.documents, collab: !!map.collab, memories: !!map.memories || hasPhotoProviders })
+      const hasPhotoProviders = data.addons.some(a => a.type === 'photo_provider')
+      setEnabledAddons({ packing: !!map.packing, budget: !!map.budget, documents: !!map.documents, collab: !!map.collab, memories: hasPhotoProviders })
     }).catch(() => {})
     authApi.getAppConfig().then(config => {
       if (config.allowed_file_types) setAllowedFileTypes(config.allowed_file_types)
