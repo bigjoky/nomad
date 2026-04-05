@@ -480,15 +480,13 @@ export default function AtlasPage(): React.ReactElement {
       }
     }
 
-    // Match feature by ISO code OR region name
+    // Match feature by ISO code OR region name (native or English)
     const isVisitedFeature = (f: any) => {
       if (visitedRegionCodes.has(f.properties?.iso_3166_2)) return true
       const name = (f.properties?.name || '').toLowerCase()
       if (visitedRegionNames.has(name)) return true
-      // Fuzzy: check if any visited name is contained in feature name or vice versa
-      for (const vn of visitedRegionNames) {
-        if (name.includes(vn) || vn.includes(name)) return true
-      }
+      const nameEn = (f.properties?.name_en || '').toLowerCase()
+      if (nameEn && visitedRegionNames.has(nameEn)) return true
       return false
     }
 
@@ -535,15 +533,16 @@ export default function AtlasPage(): React.ReactElement {
       },
       onEachFeature: (feature, layer) => {
         const regionName = feature?.properties?.name || ''
+        const regionNameEn = feature?.properties?.name_en || ''
         const countryName = feature?.properties?.admin || ''
         const regionCode = feature?.properties?.iso_3166_2 || ''
         const countryA2 = (feature?.properties?.iso_a2 || '').toUpperCase()
         const visited = isVisitedFeature(feature)
-        const count = regionPlaceCounts[regionCode] || regionPlaceCounts[regionName.toLowerCase()] || 0
+        const count = regionPlaceCounts[regionCode] || regionPlaceCounts[regionName.toLowerCase()] || regionPlaceCounts[regionNameEn.toLowerCase()] || 0
         layer.on('click', () => {
           if (!countryA2) return
           if (visited) {
-            const regionEntry = visitedRegions[countryA2]?.find(r => r.code === regionCode)
+            const regionEntry = visitedRegions[countryA2]?.find(r => r.code === regionCode || r.name.toLowerCase() === regionNameEn.toLowerCase())
             if (regionEntry?.manuallyMarked) {
               setConfirmActionRef.current({
                 type: 'unmark-region',

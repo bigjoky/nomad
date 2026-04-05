@@ -202,3 +202,184 @@ describe('Bucket list', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('Mark/unmark region', () => {
+  it('ATLAS-009 — POST /region/:code/mark marks a region as visited', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  it('ATLAS-009 — POST /region/:code/mark without name returns 400', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ country_code: 'DE' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('ATLAS-009 — POST /region/:code/mark without country_code returns 400', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Nordrhein-Westfalen' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('ATLAS-009 — marking a region also auto-marks the parent country', async () => {
+    const { user } = createUser(testDb);
+
+    await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
+
+    const stats = await request(app)
+      .get('/api/addons/atlas/stats')
+      .set('Cookie', authCookie(user.id));
+
+    const codes = (stats.body.countries as any[]).map((c: any) => c.code);
+    expect(codes).toContain('DE');
+  });
+
+  it('ATLAS-009 — marking the same region twice is idempotent', async () => {
+    const { user } = createUser(testDb);
+
+    await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
+
+    const res = await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
+
+    expect(res.status).toBe(200);
+  });
+
+  it('ATLAS-010 — GET /regions returns marked regions grouped by country', async () => {
+    const { user } = createUser(testDb);
+
+    await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
+
+    await request(app)
+      .post('/api/addons/atlas/region/DE-BY/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Bayern', country_code: 'DE' });
+
+    const res = await request(app)
+      .get('/api/addons/atlas/regions')
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('regions');
+    const deRegions = res.body.regions['DE'] as any[];
+    expect(deRegions).toBeDefined();
+    const codes = deRegions.map((r: any) => r.code);
+    expect(codes).toContain('DE-NW');
+    expect(codes).toContain('DE-BY');
+  });
+
+  it('ATLAS-011 — DELETE /region/:code/mark unmarks a region', async () => {
+    const { user } = createUser(testDb);
+
+    await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
+
+    const del = await request(app)
+      .delete('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id));
+
+    expect(del.status).toBe(200);
+    expect(del.body.success).toBe(true);
+
+    const res = await request(app)
+      .get('/api/addons/atlas/regions')
+      .set('Cookie', authCookie(user.id));
+
+    const deRegions = res.body.regions['DE'] as any[] | undefined;
+    const codes = (deRegions || []).map((r: any) => r.code);
+    expect(codes).not.toContain('DE-NW');
+  });
+
+  it('ATLAS-011 — unmark last region in country also unmarks the parent country', async () => {
+    const { user } = createUser(testDb);
+
+    await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
+
+    await request(app)
+      .delete('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id));
+
+    const stats = await request(app)
+      .get('/api/addons/atlas/stats')
+      .set('Cookie', authCookie(user.id));
+
+    const codes = (stats.body.countries as any[]).map((c: any) => c.code);
+    expect(codes).not.toContain('DE');
+  });
+
+  it('ATLAS-011 — unmark one region keeps country when another region remains', async () => {
+    const { user } = createUser(testDb);
+
+    await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
+
+    await request(app)
+      .post('/api/addons/atlas/region/DE-BY/mark')
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Bayern', country_code: 'DE' });
+
+    await request(app)
+      .delete('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user.id));
+
+    const stats = await request(app)
+      .get('/api/addons/atlas/stats')
+      .set('Cookie', authCookie(user.id));
+
+    const codes = (stats.body.countries as any[]).map((c: any) => c.code);
+    expect(codes).toContain('DE');
+  });
+
+  it('ATLAS-011 — regions are isolated between users', async () => {
+    const { user: user1 } = createUser(testDb);
+    const { user: user2 } = createUser(testDb);
+
+    await request(app)
+      .post('/api/addons/atlas/region/DE-NW/mark')
+      .set('Cookie', authCookie(user1.id))
+      .send({ name: 'Nordrhein-Westfalen', country_code: 'DE' });
+
+    const res = await request(app)
+      .get('/api/addons/atlas/regions')
+      .set('Cookie', authCookie(user2.id));
+
+    expect(res.status).toBe(200);
+    const deRegions = res.body.regions['DE'] as any[] | undefined;
+    expect(deRegions).toBeUndefined();
+  });
+});

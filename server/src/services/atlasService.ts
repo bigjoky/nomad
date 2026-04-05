@@ -421,7 +421,7 @@ async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInf
     if (regionCode && /^[A-Z]{2}-\d+[A-Z]$/i.test(regionCode)) {
       regionCode = regionCode.replace(/[A-Z]$/i, '');
     }
-    const regionName = data.address?.county || data.address?.state || data.address?.province || data.address?.region || data.address?.city || null;
+    const regionName = data.address?.state || data.address?.province || data.address?.region || data.address?.county || data.address?.city || null;
     if (!countryCode || !regionName) { regionCache.set(key, null); return null; }
     const info: RegionInfo = {
       country_code: countryCode,
