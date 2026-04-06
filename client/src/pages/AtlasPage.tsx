@@ -739,7 +739,7 @@ export default function AtlasPage(): React.ReactElement {
   }
   loadCountryDetailRef.current = loadCountryDetail
 
-  const stats = data?.stats || { totalTrips: 0, totalPlaces: 0, totalCountries: 0, totalDays: 0 }
+  const stats = data?.stats || { totalTrips: 0, totalPlaces: 0, totalCountries: 0, totalDays: 0, totalCities: 0 }
   const countries = data?.countries || []
 
   if (loading) {
@@ -899,12 +899,12 @@ export default function AtlasPage(): React.ReactElement {
         <div className="md:hidden absolute bottom-3 left-0 right-0 z-10 flex justify-center" style={{ touchAction: 'manipulation' }}>
           <div className="flex items-center gap-4 px-5 py-4 rounded-2xl"
             style={{ background: dark ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.5)', backdropFilter: 'blur(16px)' }}>
-            {/* Countries highlighted */}
+            {/* Cities highlighted */}
             <div className="text-center px-3 py-1.5 rounded-xl" style={{ background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }}>
-              <p className="text-3xl font-black tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>{stats.totalCountries}</p>
-              <p className="text-[9px] font-semibold uppercase tracking-wide mt-1" style={{ color: 'var(--text-faint)' }}>{t('atlas.countries')}</p>
+              <p className="text-3xl font-black tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>{stats.totalCities ?? 0}</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wide mt-1" style={{ color: 'var(--text-faint)' }}>{t('atlas.cities')}</p>
             </div>
-            {[[stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalCities || 0, t('atlas.cities')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
+            {[[stats.totalCountries, t('atlas.countries')], [stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
               <div key={i} className="text-center px-1">
                 <p className="text-xl font-black tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>{v}</p>
                 <p className="text-[9px] font-semibold uppercase tracking-wide mt-1" style={{ color: 'var(--text-faint)' }}>{l}</p>
@@ -1383,13 +1383,13 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
     <div className="flex items-stretch justify-center">
 
       {/* ═══ SECTION 1: Numbers ═══ */}
-      {/* Countries hero */}
+      {/* Cities hero */}
       <div className="flex items-baseline gap-1.5 px-5 py-4 mx-2 my-2 rounded-xl" style={{ background: bg(0.08) }}>
-        <span className="text-5xl font-black tabular-nums leading-none" style={{ color: tp }}>{stats.totalCountries}</span>
-        <span className="text-sm font-medium" style={{ color: tm }}>{t('atlas.countries')}</span>
+        <span className="text-5xl font-black tabular-nums leading-none" style={{ color: tp }}>{stats.totalCities ?? 0}</span>
+        <span className="text-sm font-medium" style={{ color: tm }}>{t('atlas.cities')}</span>
       </div>
       {/* Other stats */}
-      {[[stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalCities || 0, t('atlas.cities')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
+      {[[stats.totalCountries, t('atlas.countries')], [stats.totalTrips, t('atlas.trips')], [stats.totalPlaces, t('atlas.places')], [stats.totalDays, t('atlas.days')]].map(([v, l], i) => (
         <div key={i} className="flex flex-col items-center justify-center px-3 py-5 shrink-0">
           <span className="text-2xl font-black tabular-nums leading-none" style={{ color: tp }}>{v}</span>
           <span className="text-[9px] font-semibold mt-1.5 uppercase tracking-wide whitespace-nowrap" style={{ color: tf }}>{l}</span>
