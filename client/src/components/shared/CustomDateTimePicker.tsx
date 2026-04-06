@@ -43,6 +43,12 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
   const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) } else setViewMonth(m => m + 1) }
 
   const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString(locale, { month: 'long', year: 'numeric' })
+  const monthOptions = Array.from({ length: 12 }, (_, month) => ({
+    value: String(month),
+    label: new Date(2024, month, 1).toLocaleDateString(locale, { month: 'long' }),
+  }))
+  const baseYear = parsed?.getUTCFullYear() || new Date().getFullYear()
+  const yearOptions = Array.from({ length: 31 }, (_, index) => String(baseYear - 15 + index))
   const days = daysInMonth(viewYear, viewMonth)
   const startDay = (getWeekday(viewYear, viewMonth, 1) + 6) % 7
   const weekdays = Array.from({ length: 7 }, (_, i) => new Date(2024, 0, i + 1).toLocaleDateString(locale, { weekday: 'narrow' }))
@@ -142,7 +148,49 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
               <ChevronLeft size={16} />
             </button>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{monthLabel}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <select
+                aria-label={monthLabel}
+                value={String(viewMonth)}
+                onChange={e => setViewMonth(Number(e.target.value))}
+                style={{
+                  padding: '5px 8px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border-primary)',
+                  background: 'var(--bg-input)',
+                  color: 'var(--text-primary)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  minWidth: 0,
+                }}
+              >
+                {monthOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <select
+                aria-label={t('common.date')}
+                value={String(viewYear)}
+                onChange={e => setViewYear(Number(e.target.value))}
+                style={{
+                  padding: '5px 8px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border-primary)',
+                  background: 'var(--bg-input)',
+                  color: 'var(--text-primary)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                }}
+              >
+                {yearOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
             <button type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
               <ChevronRight size={16} />
